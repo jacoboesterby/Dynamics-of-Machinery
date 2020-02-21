@@ -1,5 +1,5 @@
 clear all
-syms E I1 I2 L L1 L2 L3 L4 L5 L6 m1 m2 m3 m4 m5 m6 x1(t) x2(t) x3(t) x4(t) x5(t) x6(t) phi(x) t g theta(t) R1(t) R2(t) R3(t) R4(t) R5(t) R6(t)
+syms E I1 I2 L L1 L2 L3 L4 L5 L6 m1 m2 m3 m4 m5 m6 x1(t) x2(t) x3(t) x4(t) x5(t) x6(t) phi(x) t g theta(t) R1(t) R2(t) R3(t) R4(t) R5(t) R6(t) u1 u2 u3 u4
 
 eq1 = sym(zeros(3,1));
 eq2 = sym(zeros(3,1));
@@ -43,8 +43,8 @@ b5vf = T_theta*b4vd + cross(omega,b5rdf) + diff(b5rdf,t);
 %products including omega can be neglected
 b1Aa = diff(iroa,t,t);
 b2Ab = b1Aa + diff(b1rab,t,t);
-b3Ac = b2Ab + diff(b2rbc,t);
-b4Ad = b3Ac + diff(b3rcd,t);
+b3Ac = b2Ab + diff(b2rbc,t,t);
+b4Ad = b3Ac + diff(b3rcd,t,t);
 
 %Accelerations for blade tips:
 b5Ae = T_theta*b4Ad + cross(diff(omega,t),b5rde) + cross(omega,cross(omega,b5rde)) + 2 * cross(omega,diff(b5rde,t)) + diff(b5rde,t,t);
@@ -52,13 +52,13 @@ b5Af = T_theta*b4Ad + cross(diff(omega,t),b5rdf) + cross(omega,cross(omega,b5rdf
 
 
 
-BeamStiff = @(L,I) 3*E*I/(L^3)
+BeamStiff = @(L,I) 3*E*I/(L^3);
 
 IPA = [0, -m1*g, 0].';
 ITA1 = [-BeamStiff(L1,I1)*x1(t), 0, 0].';
 IRA1 = [0,R1,0].';
 
-ITA2 = [BeamStiff(L2,I1)*(x2(t)-x1(t))].';
+ITA2 = [BeamStiff(L2,I1)*(x2(t)-x1(t)),0,0].';
 IRA2 = [0,-R2,0].';
 
 IPB = [0, -m2*g, 0].';
@@ -74,7 +74,7 @@ IRC3 = -IRB3;
 ITC4 = [(x4(t)-x3(t))*BeamStiff(L4,I1),0,0].';
 IRC4 = [0,-R4,0].';
 
-IPD = [0,R4,0].';
+IPD = [0,-m4*g,0].';
 ITD4 = -ITC4;
 IRD4 = -IRC4;
 %
@@ -91,14 +91,17 @@ IPF = T_theta*[0,-m6*g,0].';
 ITF = T_theta*[-BeamStiff(L6,I2)*x6(t),0,0].';
 IRF = T_theta*[0,R6,0].';
 
-ITD5 = T_theta.'*(ITE+ITF)
+ITD5 = T_theta.'*(ITE+ITF);
+ITEF5 = -T_theta*ITD5;
 
-eq1(:) = m1.*(b1Aa) - ( IPA+IRA1+IRA2+ITA1+ITA2);
+%ITEF5 = 
+
+eq1(:) = m1.*(b1Aa) - ( IPA + IRA1 + IRA2 + ITA1 + ITA2);
 eq2(:) = m2.*(b2Ab) - ( IPB + IRB2 + IRB3 + ITB2 + ITB3);
 eq3(:) = m3.*(b3Ac) - ( IPC + IRC3 + IRC4 + ITC3 + ITC4);
-eq4(:) = m4.*(b4Ad) - ( IPD + IRD4 + IRD5 + ITD4);
-eq5(:) = m5.*(b5Ae) - ( IPE + IRE + ITE - ITD5);
-eq6(:) = m6.*(b5Af) - ( IPF + IRF + ITF - ITD5);
+eq4(:) = m4.*(b4Ad) - ( IPD + IRD4 + ITD4);
+% eq5(:) = m5.*(b5Ae) - T_theta*( IPE + IRE + ITE + ITEF5);
+% eq6(:) = m6.*(b5Af) - T_theta*( IPF + IRF + ITF + ITEF5);
 
 % eq1(:) = m1.*(b1Aa) - ( IPA+ITA1+ITA2);
 % eq2(:) = m2.*(b2Ab) - ( IPB + ITB2 + ITB3);
@@ -136,6 +139,8 @@ b2 = 0.0350;
 h2 = 0.0015;
 I2 = b2*h2^3/12;
 
+theta = 0;
+
 g = 9.81;
 
 eq1 = subs(eq1);
@@ -145,13 +150,14 @@ eq4 = subs(eq4);
 eq5 = subs(eq5);
 eq6 = subs(eq6);
 
-eqsys = [eq1;eq2;eq3;eq4;eq5;eq6];
+eqsys = [eq1;eq2;eq3;eq4];
 syms ddx1 ddx2 ddx3 ddx4 ddx5 ddx6 RA RB RC RD RE RF
-dderivatives = [ddx1 ddx2 ddx3 ddx4 ddx5 ddx6];
-forces = [RA RB RC RD RE RF]
-eqsys = subs(eqsys,[diff(x1,t,t),diff(x2,t,t),diff(x3,t,t),diff(x4,t,t),diff(x5,t,t),diff(x6,t,t),R1,R2,R3,R4,R5,R6],[dderivatives,forces])
-dx = [dderivatives,forces];
-dderivatives = [ddx1 ddx2 ddx3 ddx4 ddx5 ddx6];
+dderivatives = [ddx1 ddx2 ddx3 ddx4];
+forces = [RA RB RC RD]
+eqsys = subs(eqsys,[diff(x1,t,t),diff(x2,t,t),diff(x3,t,t),diff(x4,t,t),R1,R2,R3,R4],[dderivatives,forces])
+%eqsys = subs(eqsys,[diff(x1,t,t),diff(x2,t,t),diff(x3,t,t),diff(x4,t,t),diff(x5,t,t),diff(x6,t,t),R1,R2,R3,R4,R5,R6],[dderivatives,forces])
+dx = [ddx1,ddx2,ddx3,ddx4,RA,RB,RC,RD];
+
 
 
 index = [];
@@ -165,11 +171,71 @@ for i=1:size(eqsys,1)
 end
 
 keyboard
-[A,b] = equationsToMatrix(eqsys(index),dx)
+[A,b] = equationsToMatrix(eqsys(index),dx.')
 
 
-[V,S] = odeToVectorField([eq1;eq2;eq3;eq4;eq5]);
+
+
+T = 10;
+
+% numerical solution 
+acc = linsolve(A,b);
+acc = acc(1:4);
+
+
+u = sym(zeros(4,1));
+u = [u1 u2 u3 u4];
+acc = subs(acc,[x1,x2,x3,x4],[u(1),u(2),u(3),u(4)])
+
+
+acc = matlabFunction(acc)
+
+%%
+clear t_int
+% time step
+    deltaT = 0.00001;
+
+% number of integration points
+    n_int = 200000;
+   
+ %Initial conditions on form Ini = [x10,dx10dt x20 dx20dt x30 dx30dt x40 dx40dt]
+
+ close all
+    Ini = [0.1,0,-0.1,0,0.1,0,-0.1,0];
+    
+    dxdt = zeros(4,n_int);
+    dxdt(:,1) = Ini(2:2:end);
+    x = zeros(4,n_int);
+    x(:,1) = Ini(1:2:end);
+    
+for i=2:n_int
+    t_int(i-1) = (i-2)*deltaT;
+    input = num2cell(x(:,i-1));
+    dxdt(:,i) = dxdt(:,i-1) + acc(input{:})*deltaT;
+    x(:,i) = x(:,i-1) + dxdt(:,i)*deltaT;
+end
+
+leg = {};
+
+X = sym(zeros(4,1));
+X(:) = [x1,x2,x3,x4];
+
+for i=1:size(x,1)
+    plot(t_int,x(i,1:length(t_int)),'linewidth',3)
+    hold on
+    leg{i} = string(X(i));
+end
+legend(leg{:},'interpreter','latex');
+xlabel('Time [s]','interpreter','latex');
+ylabel('Displacement [m]','interpreter','latex');
+set(gca,'fontsize',28);
+    
+    
+%%
+[V,S] = odeToVectorField([eqsys(index)]);
 M = matlabFunction(V,'vars',{'t','Y'});
+
+
 
 %Define mode shapes
 Beta1 = 1.87510407/L;
