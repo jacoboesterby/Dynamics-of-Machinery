@@ -1,6 +1,8 @@
 clear all
 syms L L1 L2 L3 L4 L5 L6 m1 m2 m3 m4 m5 m6 y1(t) y2(t) y3(t) y4(t) y5(t) y6(t) x1 x2 x3 x4 x5 x6 phi(x) t g theta(t) q1(t) q2(t) q3(t) q4(t) q5(t) q6(t)
 
+%v2
+
 %Position vectors
 iroa = [y1(t),L1,0].';
 b1rab = [y2(t),L2,0].';
