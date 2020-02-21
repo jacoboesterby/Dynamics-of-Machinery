@@ -1,6 +1,13 @@
 clear all
 syms E I1 I2 L L1 L2 L3 L4 L5 L6 m1 m2 m3 m4 m5 m6 x1(t) x2(t) x3(t) x4(t) x5(t) x6(t) phi(x) t g theta(t) R1(t) R2(t) R3(t) R4(t) R5(t) R6(t)
 
+eq1 = sym(zeros(3,1));
+eq2 = sym(zeros(3,1));
+eq3 = sym(zeros(3,1));
+eq4 = sym(zeros(3,1));
+eq5 = sym(zeros(3,1));
+eq6 = sym(zeros(3,1));
+
 %Position vectors
 iroa = [x1(t),L1,0].';
 b1rab = [x2(t),L2,0].';
@@ -70,22 +77,35 @@ IRC4 = [0,-R4,0].';
 IPD = [0,R4,0].';
 ITD4 = -ITC4;
 IRD4 = -IRC4;
+%
+
 IRD5 = [0,-R5,0].';
 
 IPE = T_theta*[0,-m5*g,0].';
 ITE = T_theta*[-BeamStiff(L5,I2)*x5(t),0,0].';
 IRE = [0,R5,0].';
 
+
+
 IPF = T_theta*[0,-m6*g,0].';
 ITF = T_theta*[-BeamStiff(L6,I2)*x6(t),0,0].';
 IRF = T_theta*[0,R6,0].';
 
-eq1 = m1.*(b1Aa) == IPA+IRA1+IRA2+ITA1+ITA2;
-eq2 = m2.*(b2Ab) == IPB + IRB2 + IRB3 + ITB2 + ITB3;
-eq3 = m3.*(b3Ac) == IPC + IRC3 + IRC4 + ITC3 + ITC4;
-eq4 = m4.*(b4Ad) == IPD + IRD4 + IRD5 + ITD4;
-eq5 = m5.*(b5Ae) == IPE + IRE + ITE;
-eq6 = m6.*(b5Af) == IPF + IRF + ITF;
+ITD5 = T_theta.'*(ITE+ITF)
+
+eq1(:) = m1.*(b1Aa) - ( IPA+IRA1+IRA2+ITA1+ITA2);
+eq2(:) = m2.*(b2Ab) - ( IPB + IRB2 + IRB3 + ITB2 + ITB3);
+eq3(:) = m3.*(b3Ac) - ( IPC + IRC3 + IRC4 + ITC3 + ITC4);
+eq4(:) = m4.*(b4Ad) - ( IPD + IRD4 + IRD5 + ITD4);
+eq5(:) = m5.*(b5Ae) - ( IPE + IRE + ITE - ITD5);
+eq6(:) = m6.*(b5Af) - ( IPF + IRF + ITF - ITD5);
+
+% eq1(:) = m1.*(b1Aa) - ( IPA+ITA1+ITA2);
+% eq2(:) = m2.*(b2Ab) - ( IPB + ITB2 + ITB3);
+% eq3(:) = m3.*(b3Ac) - ( IPC + ITC3 + ITC4);
+% eq4(:) = m4.*(b4Ad) - ( IPD + ITD4 + ITD5);
+% eq5(:) = m5.*(b5Ae) - ( IPE + ITE - ITD5);
+% eq6(:) = m6.*(b5Af) - ( IPF + ITF - ITD5);
 
 
 %Numerical values: 
@@ -126,9 +146,27 @@ eq5 = subs(eq5);
 eq6 = subs(eq6);
 
 eqsys = [eq1;eq2;eq3;eq4;eq5;eq6];
-keyboard
+syms ddx1 ddx2 ddx3 ddx4 ddx5 ddx6 RA RB RC RD RE RF
+dderivatives = [ddx1 ddx2 ddx3 ddx4 ddx5 ddx6];
+forces = [RA RB RC RD RE RF]
+eqsys = subs(eqsys,[diff(x1,t,t),diff(x2,t,t),diff(x3,t,t),diff(x4,t,t),diff(x5,t,t),diff(x6,t,t),R1,R2,R3,R4,R5,R6],[dderivatives,forces])
+dx = [dderivatives,forces];
+dderivatives = [ddx1 ddx2 ddx3 ddx4 ddx5 ddx6];
 
-theta(t) = omega
+
+index = [];
+
+for i=1:size(eqsys,1)
+    if mod(i,3) ==0
+        
+    else
+    index(end+1) = i;
+    end
+end
+
+keyboard
+[A,b] = equationsToMatrix(eqsys(index),dx)
+
 
 [V,S] = odeToVectorField([eq1;eq2;eq3;eq4;eq5]);
 M = matlabFunction(V,'vars',{'t','Y'});
@@ -157,7 +195,7 @@ eqsys = [eq1;eq2;eq3;eq4;eq5;eq6];
 
 eqsys = vpa(eqsys);
 
-index = find(eqsys~=0);
+
 
 [V,S] = odeToVectorField([eq1;eq2;eq3;eq4;eq5;]);
 M = matlabFunction(V,'vars',{'t','Y'});
