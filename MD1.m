@@ -1,5 +1,5 @@
 clear all
-syms E I1 I2 L L1 L2 L3 L4 L5 L6 m1 m2 m3 m4 m5 m6 x1(t) x2(t) x3(t) x4(t) x5(t) x6(t) phi(x) t g theta(t) R1(t) R2(t) R3(t) R4(t) R5(t) R6(t) u1 u2 u3 u4
+syms E I1 I2 L L1 L2 L3 L4 L5 L6 m1 m2 m3 m4 m5 m6 x1(t) x2(t) x3(t) x4(t) x5(t) x6(t) phi(x) t g theta(t) R1(t) R2(t) R3(t) R4(t) R5(t) R6(t) u1 u2 u3 u4 u5 u6
 
 eq1 = sym(zeros(3,1));
 eq2 = sym(zeros(3,1));
@@ -18,13 +18,13 @@ b5rdf = [x6(t),-L6,0].';
 
 %Transformation matrices:
 T_theta = [cos(theta), sin(theta), 0;
-           -sin(theta), cos(theta),0;
-           0,           0,         1];
+    -sin(theta), cos(theta),0;
+    0,           0,         1];
 T = [1,0,0;
-     0,1,0;
-     0,0,1];
- 
- omega = [0,0,diff(theta,t)].';
+    0,1,0;
+    0,0,1];
+
+omega = [0,0,diff(theta,t)].';
 
 %Velocity vectors:
 b1va = diff(iroa,t);
@@ -94,14 +94,14 @@ IRF = T_theta*[0,R6,0].';
 ITD5 = T_theta.'*(ITE+ITF);
 ITEF5 = -T_theta*ITD5;
 
-%ITEF5 = 
+%ITEF5 =
 
 eq1(:) = m1.*(b1Aa) - ( IPA + IRA1 + IRA2 + ITA1 + ITA2);
 eq2(:) = m2.*(b2Ab) - ( IPB + IRB2 + IRB3 + ITB2 + ITB3);
 eq3(:) = m3.*(b3Ac) - ( IPC + IRC3 + IRC4 + ITC3 + ITC4);
-eq4(:) = m4.*(b4Ad) - ( IPD + IRD4 + ITD4);
-% eq5(:) = m5.*(b5Ae) - T_theta*( IPE + IRE + ITE + ITEF5);
-% eq6(:) = m6.*(b5Af) - T_theta*( IPF + IRF + ITF + ITEF5);
+eq4(:) = m4.*(b4Ad) - ( IPD + IRD4 + IRD5 + ITD4 + ITD5);
+eq5(:) = m5.*(b5Ae) - T_theta*( IPE + IRE + ITE );
+eq6(:) = m6.*(b5Af) - T_theta*( IPF + IRF + ITF );
 
 % eq1(:) = m1.*(b1Aa) - ( IPA+ITA1+ITA2);
 % eq2(:) = m2.*(b2Ab) - ( IPB + ITB2 + ITB3);
@@ -111,7 +111,7 @@ eq4(:) = m4.*(b4Ad) - ( IPD + IRD4 + ITD4);
 % eq6(:) = m6.*(b5Af) - ( IPF + ITF - ITD5);
 
 
-%Numerical values: 
+%Numerical values:
 m1 = 2.294;
 m2 = 1.941;
 m3 = 1.943;
@@ -150,13 +150,12 @@ eq4 = subs(eq4);
 eq5 = subs(eq5);
 eq6 = subs(eq6);
 
-eqsys = [eq1;eq2;eq3;eq4];
+eqsys = [eq1;eq2;eq3;eq4;eq5;eq6];
 syms ddx1 ddx2 ddx3 ddx4 ddx5 ddx6 RA RB RC RD RE RF
-dderivatives = [ddx1 ddx2 ddx3 ddx4];
-forces = [RA RB RC RD]
-eqsys = subs(eqsys,[diff(x1,t,t),diff(x2,t,t),diff(x3,t,t),diff(x4,t,t),R1,R2,R3,R4],[dderivatives,forces])
-%eqsys = subs(eqsys,[diff(x1,t,t),diff(x2,t,t),diff(x3,t,t),diff(x4,t,t),diff(x5,t,t),diff(x6,t,t),R1,R2,R3,R4,R5,R6],[dderivatives,forces])
-dx = [ddx1,ddx2,ddx3,ddx4,RA,RB,RC,RD];
+dderivatives = [ddx1 ddx2 ddx3 ddx4 ddx5 ddx6];
+forces = [RA RB RC RD RE RF];
+eqsys = subs(eqsys,[diff(x1,t,t),diff(x2,t,t),diff(x3,t,t),diff(x4,t,t),diff(x5,t,t),diff(x6,t,t),R1,R2,R3,R4,R5,R6],[dderivatives,forces]);
+dx = [ddx1,ddx2,ddx3,ddx4,ddx5,ddx6,RA,RB,RC,RD,RE,RF];
 
 
 
@@ -166,62 +165,67 @@ for i=1:size(eqsys,1)
     if mod(i,3) ==0
         
     else
-    index(end+1) = i;
+        index(end+1) = i;
     end
 end
 
-keyboard
-[A,b] = equationsToMatrix(eqsys(index),dx.')
+[A,b] = equationsToMatrix(eqsys(index),dx.');
 
 
 
-
-T = 10;
-
-% numerical solution 
+% numerical solution
 acc = linsolve(A,b);
-acc = acc(1:4);
+acc = acc(1:6);
 
 
-u = sym(zeros(4,1));
-u = [u1 u2 u3 u4];
-acc = subs(acc,[x1,x2,x3,x4],[u(1),u(2),u(3),u(4)])
+u = sym(zeros(6,1));
+u = [u1 u2 u3 u4 u5 u6];
+acc = subs(acc,[x1,x2,x3,x4,x5,x6],[u(1),u(2),u(3),u(4),u(5),u(6)]);
 
 
-acc = matlabFunction(acc)
-
+acc = matlabFunction(acc);
 %%
 clear t_int
 % time step
-    deltaT = 0.00001;
+deltaT = 0.00001;
 
 % number of integration points
-    n_int = 200000;
-   
- %Initial conditions on form Ini = [x10,dx10dt x20 dx20dt x30 dx30dt x40 dx40dt]
+n_int = 200000;
 
- close all
-    Ini = [0.1,0,-0.1,0,0.1,0,-0.1,0];
-    
-    dxdt = zeros(4,n_int);
-    dxdt(:,1) = Ini(2:2:end);
-    x = zeros(4,n_int);
-    x(:,1) = Ini(1:2:end);
-    
+%Initial conditions on form Ini = [x10,dx10dt x20 dx20dt x30 dx30dt x40 dx40dt x50 dx50dt x60 dx60dt]
+
+close all
+Ini = [0,0,0,0,0.01,0,0,0,0,0,0,0];
+
+dxdt = zeros(6,n_int);
+dxdt(:,1) = Ini(2:2:end);
+x = zeros(6,n_int);
+x(:,1) = Ini(1:2:end);
+dtheta = 0;
+phi = zeros(n_int,1);
+phi(1) = theta;
+
 for i=2:n_int
     t_int(i-1) = (i-2)*deltaT;
-    input = num2cell(x(:,i-1));
-    dxdt(:,i) = dxdt(:,i-1) + acc(input{:})*deltaT;
+    inp = num2cell(x(:,i-1));
+    dxdt(:,i) = dxdt(:,i-1) + acc(inp{:})*deltaT;
     x(:,i) = x(:,i-1) + dxdt(:,i)*deltaT;
+    phi(i) = phi(i-1) + dtheta*deltaT;
 end
+t_int(i) = (i-1)*deltaT;
 
 leg = {};
 
-X = sym(zeros(4,1));
-X(:) = [x1,x2,x3,x4];
+X = sym(zeros(6,1));
+X(:) = [x1,x2,x3,x4,x5,x6];
 
 for i=1:size(x,1)
-    plot(t_int,x(i,1:length(t_int)),'linewidth',3)
+    if i==6
+        style = '--';
+    else
+        style = '-';
+    end
+    plot(t_int,x(i,1:length(t_int)),'linewidth',3,'linestyle',style)
     hold on
     leg{i} = string(X(i));
 end
@@ -229,68 +233,9 @@ legend(leg{:},'interpreter','latex');
 xlabel('Time [s]','interpreter','latex');
 ylabel('Displacement [m]','interpreter','latex');
 set(gca,'fontsize',28);
-    
-    
-%%
-[V,S] = odeToVectorField([eqsys(index)]);
-M = matlabFunction(V,'vars',{'t','Y'});
 
-
-
-%Define mode shapes
-Beta1 = 1.87510407/L;
-Sigma1 = 0.7341;
-Phi1(x) = cosh(Beta1*(L-x))+cos(Beta1*(L-x))-Sigma1*(sinh(Beta1*(L-x))+sin(Beta1*(L-x)));
-
-y1(t) = q1(t)*Phi1(L);
-y2(t) = q2(t)*Phi1(L);
-y3(t) = q3(t)*Phi1(L);
-y4(t) = q4(t)*Phi1(L);
-y5(t) = q5(t)*Phi1(L);
-y6(t) = q6(t)*Phi1(L);
-
-
-eq1 = subs(eq1);
-eq2 = subs(eq2);
-eq3 = subs(eq3);
-eq4 = subs(eq4);
-eq5 = subs(eq5);
-eq6 = subs(eq6);
-
-eqsys = [eq1;eq2;eq3;eq4;eq5;eq6];
-
-eqsys = vpa(eqsys);
-
-
-
-[V,S] = odeToVectorField([eq1;eq2;eq3;eq4;eq5;]);
-M = matlabFunction(V,'vars',{'t','Y'});
-
-%Define initial conditions
-Ini = [0,0.1,0,0,0,0,0,0,1,0];
-
-opts = odeset('Stats','on');
-
-simTime = 15;
-disp('Solving');
-
-%Solve
-sols = ode45(M,[0,simTime],Ini,opts);
-
-for i=1:length(S)
-    plot(sols.x,sols.y(i,:),'linewidth',3)
-    leg{i} = string(S(i));
-    hold on
-end
-legend(leg{:});
-
-
-
-
-
-
-
-
+input('Press enter to animate');
+animateFlexibleStructure(x,phi,t_int)
 
 
 
