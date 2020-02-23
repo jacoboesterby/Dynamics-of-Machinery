@@ -1,5 +1,5 @@
 clear all
-syms E I1 I2 L L1 L2 L3 L4 L5 L6 m1 m2 m3 m4 m5 m6 x1(t) x2(t) x3(t) x4(t) x5(t) x6(t) phi(x) t g theta(t) R1(t) R2(t) R3(t) R4(t) R5(t) R6(t) u1 u2 u3 u4 u5 u6
+syms E I1 I2 L L1 L2 L3 L4 L5 L6 m1 m2 m3 m4 m5 m6 x1(t) x2(t) x3(t) x4(t) x5(t) x6(t) t g theta(t) R1(t) R2(t) R3(t) R4(t) R5(t) R6(t) u1 u2 u3 u4 u5 u6 phi
 
 eq1 = sym(zeros(3,1));
 eq2 = sym(zeros(3,1));
@@ -55,23 +55,23 @@ b5Af = T_theta*b4Ad + cross(diff(omega,t),b5rdf) + cross(omega,cross(omega,b5rdf
 BeamStiff = @(L,I) 3*E*I/(L^3);
 
 IPA = [0, -m1*g, 0].';
-ITA1 = [-BeamStiff(L1,I1)*x1(t), 0, 0].';
+ITA1 = [-2*BeamStiff(L1,I1)*x1(t), 0, 0].';
 IRA1 = [0,R1,0].';
 
-ITA2 = [BeamStiff(L2,I1)*(x2(t)-x1(t)),0,0].';
+ITA2 = [2*BeamStiff(L2,I1)*(x2(t)-x1(t)),0,0].';
 IRA2 = [0,-R2,0].';
 
 IPB = [0, -m2*g, 0].';
 ITB2 = -ITA2;
 IRB2 = -IRA2;
 
-ITB3 = [(x3(t)-x2(t))*BeamStiff(L3,I1),0,0].';
+ITB3 = [(x3(t)-x2(t))*BeamStiff(L3,I1)*2,0,0].';
 IRB3 = [0,-R3,0].';
 
 IPC = [0,-m3*g,0].';
 ITC3 = -ITB3;
 IRC3 = -IRB3;
-ITC4 = [(x4(t)-x3(t))*BeamStiff(L4,I1),0,0].';
+ITC4 = [(x4(t)-x3(t))*BeamStiff(L4,I1)*2,0,0].';
 IRC4 = [0,-R4,0].';
 
 IPD = [0,-m4*g,0].';
@@ -79,19 +79,22 @@ ITD4 = -ITC4;
 IRD4 = -IRC4;
 %
 
-IRD5 = [0,-R5,0].';
 
 IPE = T_theta*[0,-m5*g,0].';
-ITE = T_theta*[-BeamStiff(L5,I2)*x5(t),0,0].';
+ITE = [-BeamStiff(L5,I2)*x5(t),0,0].';
 IRE = [0,R5,0].';
 
 
 
 IPF = T_theta*[0,-m6*g,0].';
-ITF = T_theta*[-BeamStiff(L6,I2)*x6(t),0,0].';
-IRF = T_theta*[0,R6,0].';
+ITF = [-BeamStiff(L6,I2)*x6(t),0,0].';
+IRF = [0,R6,0].';
 
+
+IRD5 = T_theta.'*(-(IRE+IRF));
 ITD5 = T_theta.'*(-(ITE+ITF));
+
+ITEF5 = ITE+ITF;
 
 %ITEF5 =
 
@@ -99,8 +102,8 @@ eq1(:) = m1.*(b1Aa) - ( IPA + IRA1 + IRA2 + ITA1 + ITA2);
 eq2(:) = m2.*(b2Ab) - ( IPB + IRB2 + IRB3 + ITB2 + ITB3);
 eq3(:) = m3.*(b3Ac) - ( IPC + IRC3 + IRC4 + ITC3 + ITC4);
 eq4(:) = m4.*(b4Ad) - ( IPD + IRD4 + IRD5 + ITD4 + ITD5);
-eq5(:) = m5.*(b5Ae) - T_theta*( IPE + IRE + ITE);
-eq6(:) = m6.*(b5Af) - T_theta*( IPF + IRF + ITF);
+eq5(:) = m5.*(b5Ae) - ( IPE + IRE + ITE);
+eq6(:) = m6.*(b5Af) - ( IPF + IRF + ITF);
 
 % eq1(:) = m1.*(b1Aa) - ( IPA+ITA1+ITA2);
 % eq2(:) = m2.*(b2Ab) - ( IPB + ITB2 + ITB3);
@@ -138,9 +141,10 @@ b2 = 0.0350;
 h2 = 0.0015;
 I2 = b2*h2^3/12;
 
-theta = 0;
+%theta = pi/4;
 
 g = 9.81;
+g = 0;
 
 eq1 = subs(eq1);
 eq2 = subs(eq2);
@@ -179,37 +183,40 @@ acc = acc(1:6);
 
 u = sym(zeros(6,1));
 u = [u1 u2 u3 u4 u5 u6];
-acc = subs(acc,[x1,x2,x3,x4,x5,x6],[u(1),u(2),u(3),u(4),u(5),u(6)]);
+acc = subs(acc,[x1,x2,x3,x4,x5,x6,theta(t)],[u(1),u(2),u(3),u(4),u(5),u(6),phi]);
 
 
 acc = matlabFunction(acc);
+keyboard
 %%
-clear t_int
+clear t_int theta
 % time step
 deltaT = 0.00001;
 
 % number of integration points
-n_int = 200000;
+n_int = 1000000;
 
 %Initial conditions on form Ini = [x10,dx10dt x20 dx20dt x30 dx30dt x40 dx40dt x50 dx50dt x60 dx60dt]
 
 close all
-Ini = [0,0,0,0,0.01,0,0,0,0,0,0,0];
+Ini = [0,0,0,0,0,0,0,0,0.1,0,0.1,0];
+
+theta0 = 0;
 
 dxdt = zeros(6,n_int);
 dxdt(:,1) = Ini(2:2:end);
 x = zeros(6,n_int);
 x(:,1) = Ini(1:2:end);
-dtheta = 0;
-phi = zeros(n_int,1);
-phi(1) = theta;
+dtheta = 3;
+theta = zeros(n_int,1);
+theta = theta0;
 
 for i=2:n_int
     t_int(i-1) = (i-2)*deltaT;
     inp = num2cell(x(:,i-1));
-    dxdt(:,i) = dxdt(:,i-1) + acc(inp{:})*deltaT;
+    dxdt(:,i) = dxdt(:,i-1) + acc(theta(i-1),inp{:})*deltaT;
     x(:,i) = x(:,i-1) + dxdt(:,i)*deltaT;
-    phi(i) = phi(i-1) + dtheta*deltaT;
+    theta(i) = theta(i-1) + dtheta*deltaT;
 end
 t_int(i) = (i-1)*deltaT;
 
@@ -234,7 +241,7 @@ ylabel('Displacement [m]','interpreter','latex');
 set(gca,'fontsize',28);
 
 input('Press enter to animate');
-animateFlexibleStructure(x,phi,t_int)
+animateFlexibleStructure(x,theta,t_int)
 
 
 
