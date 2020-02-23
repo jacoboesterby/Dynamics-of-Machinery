@@ -47,11 +47,11 @@ sol =@(s) interp1(t_int.',x.',s);
 ang =@(s) interp1(t_int.',phi.',s);
 w = 0.2;
 h = 0.04;
+rhub = 0.05;
 
 
 for i=time
     q = linsolve(As,sol(i).');
-    
     %Beam and Mass 1
     x1 = q(1)*Phi(Beam(L1),L1);
     y1 = Beam(L1);
@@ -90,16 +90,18 @@ for i=time
     
     %Blades
     % 1
-    x5 = (q(5)*Phi(Beam(L5),L5))*cos(ang(i)) +  Beam(L5)*(-sin(ang(i))) + x4(end);
-    y5 = (q(5)*Phi(Beam(L5),L5))*sin(ang(i)) +  Beam(L5)*cos(ang(i)) + y4(end) + h;
-    plot(x5,y5,'linewidth',3,'color','k')
-    plot(x5,y5,'linewidth',3,'color','k')
+    x5 = (q(5)*Phi(Beam(L5),L5))*cos(ang(i)) +  (Beam(L5))*(-sin(ang(i))) + x4(end) - sin(ang(i))*rhub;
+    y5 = (q(5)*Phi(Beam(L5),L5))*sin(ang(i)) +  (Beam(L5))*cos(ang(i)) + y4(end) + h + cos(ang(i))*rhub;
+    plot(x5,y5,'linewidth',3,'color','m')
+    plot(x5,y5,'linewidth',3,'color','m')
     
     % 2
-    x6 = (q(6)*Phi(Beam(L6),L6))*cos(ang(i)) +  Beam(L5)*(-sin(ang(i))) + x4(end);
-    y6 = -(q(6)*Phi(Beam(L6),L6))*sin(ang(i)) +  -Beam(L5)*cos(ang(i)) + y4(end) + h;
-    plot(x6,y6,'linewidth',3,'color','k')
-    plot(x6,y6,'linewidth',3,'color','k')
+    x6 = (-q(6)*Phi(Beam(L6),L6))*cos(ang(i)-pi) +  (Beam(L5))*(-sin(ang(i)-pi)) + x4(end) + sin(ang(i))*rhub;
+    y6 = (-q(6)*Phi(Beam(L6),L6))*sin(ang(i)-pi) +  (Beam(L5))*cos(ang(i)-pi) + y4(end) + h - cos(ang(i))*rhub;
+    plot(x6,y6,'linewidth',3,'color','m')
+    plot(x6,y6,'linewidth',3,'color','m')
+    
+    filledCircle([x4(end),y4(end)+h],rhub,100,'g');
     
     xlim([-w*3,w*3]);
     ylim([0,L1+L2+L3+L4+L6].*1.1)
