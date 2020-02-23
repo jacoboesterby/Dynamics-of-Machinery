@@ -79,20 +79,17 @@ ITD4 = -ITC4;
 IRD4 = -IRC4;
 %
 
-IRD5 = [0,-R5,0].';
-
 IPE = T_theta*[0,-m5*g,0].';
 ITE = T_theta*[-BeamStiff(L5,I2)*x5(t),0,0].';
 IRE = [0,R5,0].';
-
-
 
 IPF = T_theta*[0,-m6*g,0].';
 ITF = T_theta*[-BeamStiff(L6,I2)*x6(t),0,0].';
 IRF = T_theta*[0,R6,0].';
 
-ITD5 = T_theta.'*(ITE+ITF);
-ITEF5 = -T_theta*ITD5;
+IRD5 = (IRE+IRF);
+ITD5 = -(ITE+ITF);
+%ITEF5 = -T_theta*ITD5;
 
 %ITEF5 =
 
@@ -190,7 +187,7 @@ clear t_int
 deltaT = 0.00001;
 
 % number of integration points
-n_int = 200000;
+n_int = 600000;
 
 %Initial conditions on form Ini = [x10,dx10dt x20 dx20dt x30 dx30dt x40 dx40dt x50 dx50dt x60 dx60dt]
 
@@ -211,7 +208,9 @@ for i=2:n_int
     dxdt(:,i) = dxdt(:,i-1) + acc(inp{:})*deltaT;
     x(:,i) = x(:,i-1) + dxdt(:,i)*deltaT;
     phi(i) = phi(i-1) + dtheta*deltaT;
+    
 end
+
 t_int(i) = (i-1)*deltaT;
 
 leg = {};
@@ -236,11 +235,4 @@ set(gca,'fontsize',28);
 
 input('Press enter to animate');
 animateFlexibleStructure(x,phi,t_int)
-
-
-
-
-
-
-
 
