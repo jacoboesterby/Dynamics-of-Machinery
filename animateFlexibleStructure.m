@@ -1,5 +1,6 @@
 function animateFlexibleStructure(x,phi,t_int)
 close all
+syms L
 m1 = 2.294;
 m2 = 1.941;
 m3 = 1.943;
@@ -28,17 +29,23 @@ h2 = 0.0015;
 I2 = b2*h2^3/12;
 
 
-Sigma = 0.7341;
-Phi = @(xi,L) cosh(1.87510407/L*(L-xi))+cos(1.87510407/L*(L-xi))-Sigma*(sinh(1.87510407/L*(L-xi))+sin(1.87510407/L*(L-xi)));
+Sigma_blade = 0.7341;
+Phi_blade = @(xi,L) cosh(1.87510407/L*(L-xi))+cos(1.87510407/L*(L-xi))-Sigma_blade*(sinh(1.87510407/L*(L-xi))+sin(1.87510407/L*(L-xi)));
+
+Sigma_beam = 0.9825;
+Phi_beam = @(xi,L) cosh(2.36502037/L*(xi))-cos(2.36502037/L*(xi))-Sigma_beam*(sinh(2.36502037/L*(xi))-sin(2.36502037/L*(xi))); 
 %Define system of equations 
-As = diag(ones(1,6).*2);
+As = diag(ones(1,6));
+As(1:4,:) = As(1:4,:).*double(Phi_beam(L,L));
+As(5:6,:) = As(5:6,:).*double(Phi_blade(L,L));
+
 g = 9.81;
 %%Plotting stuff 
 fps = 60;
 time = linspace(0,t_int(end),t_int(end)*fps);
 %Create .avi file
 f = figure('visible','off');
-v = VideoWriter('Test5.avi');
+v = VideoWriter('Test2.avi');
 open(v);
 hold on
 Beam = @(L) linspace(0,L,20);
@@ -49,11 +56,13 @@ w = 0.2;
 h = 0.04;
 rhub = 0.05;
 
+wbar = waitbar(0,'Animating...');
+
 
 for i=time
     q = linsolve(As,sol(i).');
     %Beam and Mass 1
-    x1 = q(1)*Phi(Beam(L1),L1);
+    x1 = q(1)*Phi_beam(Beam(L1),L1);
     y1 = Beam(L1);
     plot(x1+w,y1,'linewidth',3,'color','k')
     plot(x1-w,y1,'linewidth',3,'color','k')
@@ -62,7 +71,7 @@ for i=time
     'LineWidth',3)
 
     %Beam and Mass 2
-    x2 = q(2)*Phi(Beam(L2),L2)+x1(end);
+    x2 = q(2)*Phi_beam(Beam(L2),L2)+x1(end);
     y2 = Beam(L2)+y1(end)+h;
     plot(x2+w,y2,'linewidth',3,'color','k')
     plot(x2-w,y2,'linewidth',3,'color','k')
@@ -71,7 +80,7 @@ for i=time
     'LineWidth',3)
     
     %Beam and Mass 3
-    x3 = q(3)*Phi(Beam(L3),L3)+x2(end);
+    x3 = q(3)*Phi_beam(Beam(L3),L3)+x2(end);
     y3 = Beam(L3)+y2(end)+h;
     plot(x3+w,y3,'linewidth',3,'color','k')
     plot(x3-w,y3,'linewidth',3,'color','k')
@@ -80,7 +89,7 @@ for i=time
     'LineWidth',3)
 
     %Beam and Mass 4
-    x4 = q(4)*Phi(Beam(L4),L4)+x3(end);
+    x4 = q(4)*Phi_beam(Beam(L4),L4)+x3(end);
     y4 = Beam(L4)+y3(end)+h;
     plot(x4+w,y4,'linewidth',3,'color','k')
     plot(x4-w,y4,'linewidth',3,'color','k')
@@ -90,18 +99,18 @@ for i=time
     
     %Blades
     % 1
-    x5 = (q(5)*Phi(Beam(L5),L5))*cos(ang(i)) +  (Beam(L5))*(-sin(ang(i))) + x4(end) - sin(ang(i))*rhub;
-    y5 = (q(5)*Phi(Beam(L5),L5))*sin(ang(i)) +  (Beam(L5))*cos(ang(i)) + y4(end) + h + cos(ang(i))*rhub;
+    x5 = (q(5)*Phi_blade(Beam(L5),L5))*cos(ang(i)) +  (Beam(L5))*(-sin(ang(i))) + x4(end) - sin(ang(i))*rhub;
+    y5 = (q(5)*Phi_blade(Beam(L5),L5))*sin(ang(i)) +  (Beam(L5))*cos(ang(i)) + y4(end) + h + cos(ang(i))*rhub;
     plot(x5,y5,'linewidth',3,'color','m')
     plot(x5,y5,'linewidth',3,'color','m')
     
     % 2
-    x6 = (-q(6)*Phi(Beam(L6),L6))*cos(ang(i)-pi) +  (Beam(L5))*(-sin(ang(i)-pi)) + x4(end) + sin(ang(i))*rhub;
-    y6 = (-q(6)*Phi(Beam(L6),L6))*sin(ang(i)-pi) +  (Beam(L5))*cos(ang(i)-pi) + y4(end) + h - cos(ang(i))*rhub;
+    x6 = (-q(6)*Phi_blade(Beam(L6),L6))*cos(ang(i)-pi) +  (Beam(L6))*(-sin(ang(i)-pi)) + x4(end) + sin(ang(i))*rhub;
+    y6 = (-q(6)*Phi_blade(Beam(L6),L6))*sin(ang(i)-pi) +  (Beam(L6))*cos(ang(i)-pi) + y4(end) + h - cos(ang(i))*rhub;
     plot(x6,y6,'linewidth',3,'color','m')
     plot(x6,y6,'linewidth',3,'color','m')
     
-    filledCircle([x4(end),y4(end)+h],rhub,100,'g');
+    filledCircle([x4(end),y4(end)+h],rhub,100,'k');
     
     xlim([-w*3,w*3]);
     ylim([0,L1+L2+L3+L4+L6].*1.1)
@@ -109,5 +118,6 @@ for i=time
     writeVideo(v,frame)
     fprintf('Progress: %.2f\n',i/time(end)*100);
     cla;
+    waitbar(i/time(end), wbar);
 end
 close(v);
