@@ -52,26 +52,27 @@ b5Af = T_theta*b4Ad + cross(diff(omega,t),b5rdf) + cross(omega,cross(omega,b5rdf
 
 
 
-BeamStiff = @(L,I) 3*E*I/(L^3);
+BeamStiff_blade = @(L,I) 3*E*I/(L^3);
+BeamStiff_beam = @(L,I) 12*E*I/(L^3);
 
 IPA = [0, -m1*g, 0].';
-ITA1 = [-2*BeamStiff(L1,I1)*x1(t), 0, 0].';
+ITA1 = [-4*BeamStiff_beam(L1,I1)*x1(t), 0, 0].';
 IRA1 = [0,R1,0].';
 
-ITA2 = [2*BeamStiff(L2,I1)*(x2(t)-x1(t)),0,0].';
+ITA2 = [4*BeamStiff_beam(L2,I1)*(x2(t)-x1(t)),0,0].';
 IRA2 = [0,-R2,0].';
 
 IPB = [0, -m2*g, 0].';
 ITB2 = -ITA2;
 IRB2 = -IRA2;
 
-ITB3 = [(x3(t)-x2(t))*BeamStiff(L3,I1)*2,0,0].';
+ITB3 = [(x3(t)-x2(t))*BeamStiff_beam(L3,I1)*2,0,0].';
 IRB3 = [0,-R3,0].';
 
 IPC = [0,-m3*g,0].';
 ITC3 = -ITB3;
 IRC3 = -IRB3;
-ITC4 = [(x4(t)-x3(t))*BeamStiff(L4,I1)*2,0,0].';
+ITC4 = [(x4(t)-x3(t))*BeamStiff_beam(L4,I1)*2,0,0].';
 IRC4 = [0,-R4,0].';
 
 IPD = [0,-m4*g,0].';
@@ -81,13 +82,13 @@ IRD4 = -IRC4;
 
 
 IPE = T_theta*[0,-m5*g,0].';
-ITE = [-BeamStiff(L5,I2)*x5(t),0,0].';
+ITE = [-BeamStiff_blade(L5,I2)*x5(t),0,0].';
 IRE = [0,R5,0].';
 
 
 
 IPF = T_theta*[0,-m6*g,0].';
-ITF = [-BeamStiff(L6,I2)*x6(t),0,0].';
+ITF = [-BeamStiff_blade(L6,I2)*x6(t),0,0].';
 IRF = [0,R6,0].';
 
 
@@ -144,7 +145,6 @@ I2 = b2*h2^3/12;
 %theta = pi/4;
 
 g = 9.81;
-g = 0;
 
 eq1 = subs(eq1);
 eq2 = subs(eq2);
@@ -187,7 +187,6 @@ acc = subs(acc,[x1,x2,x3,x4,x5,x6,theta(t)],[u(1),u(2),u(3),u(4),u(5),u(6),phi])
 
 
 acc = matlabFunction(acc);
-keyboard
 %%
 clear t_int theta
 % time step
@@ -207,7 +206,7 @@ dxdt = zeros(6,n_int);
 dxdt(:,1) = Ini(2:2:end);
 x = zeros(6,n_int);
 x(:,1) = Ini(1:2:end);
-dtheta = 3;
+dtheta = 0;
 theta = zeros(n_int,1);
 theta = theta0;
 
