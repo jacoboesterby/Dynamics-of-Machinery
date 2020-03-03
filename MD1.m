@@ -138,6 +138,9 @@ L4 = 0.271;
 L5 = 0.428;
 L6 = 0.428;
 
+BeamStiff_blade = @(L,I) 3*E*I/(L^3);
+BeamStiff_beam = @(L,I) 12*E*I/(L^3);
+
 b2 = 0.0350;
 h2 = 0.0015;
 I2 = b2*h2^3/12;
@@ -145,6 +148,49 @@ I2 = b2*h2^3/12;
 %theta = pi/4;
 
 g = 9.81;
+
+
+%Analytical eigen value analysis
+%Mass matrix
+M = [m1,0,0,0,0,0;
+     0,m2,0,0,0,0;
+     0,0,m3,0,0,0;
+     0,0,0,m4,0,0;
+     0,0,0,0,m5,0;
+     0,0,0,0,0,m6];
+ 
+k1 = BeamStiff_beam(L1,I1);
+k2 = BeamStiff_beam(L2,I1);
+k3 = BeamStiff_beam(L3,I1);
+k4 = BeamStiff_beam(L4,I1);
+kb = BeamStiff_blade(L5,I2);
+
+
+K = [2*k1+2*k2  -2*k2      0         0         0   0;
+     -2*k2 2*k2+2*k3  -2*k3     0         0   0;
+     0     -2*k3      2*k3+2*k4 -2*k4     0   0;
+     0     0          -2*k4     2*k4+2*kb -kb -kb;
+     0     0          0         -kb       kb  0;
+     0     0          0         -kb       0   kb];
+nulmat = zeros(size(M));
+
+A = [M,nulmat;
+     nulmat,M];
+B = [nulmat,K;
+     -M,nulmat]; 
+ 
+[u,lambda] = eig(-B,A);
+
+lambda = diag(lambda);
+
+[lambda,ind] = sort(lambda);
+omega0 = lambda./(2*pi);
+u = u(:,ind);
+phi = u(1:6,:);
+PlotModeShapes(phi,omega0);
+
+keyboard
+
 
 eq1 = subs(eq1);
 eq2 = subs(eq2);
@@ -173,8 +219,12 @@ for i=1:size(eqsys,1)
 end
 
 [A,b] = equationsToMatrix(eqsys(index),dx.');
+syms xx1 xx2 xx3 xx4 xx5 xx6
 
+b = subs(b,{x1,x2,x3,x4,x5,x6},{xx1,xx2,xx3,xx4,xx5,xx6});
+[C,d] = equationsToMatrix(b,[xx1,xx2,xx3,xx4,xx5,xx6]);
 
+keyboard
 
 % numerical solution
 acc = linsolve(A,b);
@@ -193,12 +243,12 @@ clear t_int theta
 deltaT = 0.00001;
 
 % number of integration points
-n_int = 1000000;
+n_int = 500000;
 
 %Initial conditions on form Ini = [x10,dx10dt x20 dx20dt x30 dx30dt x40 dx40dt x50 dx50dt x60 dx60dt]
 
 close all
-Ini = [0,0,0,0,0,0,0,0,0.1,0,0.1,0];
+Ini = [0,0,0,0,0,0,0.1,0,0,0,0,0];
 
 theta0 = 0;
 
