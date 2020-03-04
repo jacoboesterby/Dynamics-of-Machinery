@@ -147,6 +147,9 @@ for i=1:size(Phi,2)
         
 end
 sgtitle('\textbf{6 first mode shapes}','fontsize',28,'interpreter','latex')
+if exist('Plots') ~= 7
+    mkdir Plots
+end
 saveas(gca,[pwd,'/Plots/ModeShapes.png']);
 saveas(gca,[pwd,'/Plots/ModeShapes.fig']);
 close(wbar);
