@@ -56,10 +56,10 @@ BeamStiff_blade = @(L,I) 3*E*I/(L^3);
 BeamStiff_beam = @(L,I) 12*E*I/(L^3);
 
 IPA = [0, -m1*g, 0].';
-ITA1 = [-4*BeamStiff_beam(L1,I1)*x1(t), 0, 0].';
+ITA1 = [-2*BeamStiff_beam(L1,I1)*x1(t), 0, 0].';
 IRA1 = [0,R1,0].';
 
-ITA2 = [4*BeamStiff_beam(L2,I1)*(x2(t)-x1(t)),0,0].';
+ITA2 = [2*BeamStiff_beam(L2,I1)*(x2(t)-x1(t)),0,0].';
 IRA2 = [0,-R2,0].';
 
 IPB = [0, -m2*g, 0].';
@@ -186,10 +186,9 @@ lambda = diag(lambda);
 [lambda,ind] = sort(lambda);
 omega0 = lambda./(2*pi);
 u = u(:,ind);
-phi = u(1:6,:);
-PlotModeShapes(phi,omega0);
+Phi = u(1:6,1:2:end);
+PlotModeShapes(Phi,omega0(2:2:end));
 
-keyboard
 
 
 eq1 = subs(eq1);
@@ -219,12 +218,11 @@ for i=1:size(eqsys,1)
 end
 
 [A,b] = equationsToMatrix(eqsys(index),dx.');
-syms xx1 xx2 xx3 xx4 xx5 xx6
+syms ddphi
 
-b = subs(b,{x1,x2,x3,x4,x5,x6},{xx1,xx2,xx3,xx4,xx5,xx6});
-[C,d] = equationsToMatrix(b,[xx1,xx2,xx3,xx4,xx5,xx6]);
+%b = subs(b,{x1,x2,x3,x4,x5,x6},{xx1,xx2,xx3,xx4,xx5,xx6});
+%[C,d] = equationsToMatrix(b,[xx1,xx2,xx3,xx4,xx5,xx6]);
 
-keyboard
 
 % numerical solution
 acc = linsolve(A,b);
@@ -233,7 +231,8 @@ acc = acc(1:6);
 
 u = sym(zeros(6,1));
 u = [u1 u2 u3 u4 u5 u6];
-acc = subs(acc,[x1,x2,x3,x4,x5,x6,theta(t)],[u(1),u(2),u(3),u(4),u(5),u(6),phi]);
+ddphi = 0;
+acc = subs(acc,[x1,x2,x3,x4,x5,x6,theta,diff(theta,t,t)],[u(1),u(2),u(3),u(4),u(5),u(6),phi,ddphi]);
 
 
 acc = matlabFunction(acc);
