@@ -1,4 +1,4 @@
-function PlotModeShapes(phi,omega0)
+function PlotModeShapes(Phi,omega0)
 
 close all
 syms L
@@ -49,20 +49,22 @@ rhub = 0.05;
 
 wbar = waitbar(0,'Animating...');
 
-ang = zeros(size(phi,2),1);
-phi0 = zeros(size(phi,1),1);
+ang = zeros(size(Phi,2),1);
+phi0 = zeros(size(Phi,1),1);
 
+[ha, pos] = tight_subplot(2,3,[.08 .03],[.05 .08],[.01 .01]);
 
-for i=1:size(phi,2)
-    f = figure('visible','off');
+for i=1:size(Phi,2)
+    %f = figure('visible','off');
+    axes(ha(i));
     hold on
     for k = 1:2
         if k == 1
             sol = phi0;
-            linstyle = '--';
+            linstyle = ':';
             fill = 'w';
         else
-            sol = phi(:,i).*0.2;
+            sol = Phi(:,i).*0.2;
             linstyle = '-';
             fill = 'k';
         end
@@ -122,15 +124,29 @@ for i=1:size(phi,2)
     %xlim([-1,1]);
     ylim([0,L1+L2+L3+L4+L6+rhub].*1.1)
     axis('equal')
+    xlabel('x [-]','interpreter','latex')
+    ylabel('y [-]','interpreter','latex')
     
 
     end
-    plot(nan,nan,'k')
-    legend(strcat('$\omega0 = $',sprintf('%.2f Hz',imag(omega0(i)))),'interpreter','latex');
-    saveas(f,[pwd,sprintf('/Plots/ModeShape=%.0d.png',i)]);
-    close(f);
-    fprintf('Progress: %.2f\n',i/size(phi,2)*100); 
-    waitbar(i/size(phi,2), wbar);
+    %plot(nan,nan)
+    dummyh = line(nan, nan, 'Linestyle', 'none', 'Marker', 'none', 'Color', 'none');
+    legend(dummyh, strcat('$\omega0 = $',sprintf('%.2f Hz',imag(omega0(i)))),'interpreter','latex')
+    legend boxoff
+    
+    %legend(strcat('$\omega0 = $',sprintf('%.2f Hz',imag(omega0(i)))),'interpreter','latex');
+    %title(strcat('$\omega0 = $',sprintf('%.2f Hz',imag(omega0(i)))),'interpreter','latex')
+    %dim = [0.4,0.5,0.2,0.3];
+    %str = [strcat('$\omega_0 = $',sprintf('%.2f Hz',imag(omega0(i))))];
+    %annotation('textbox',dim,'String',str,'FitBoxToText','on','interpreter','latex');
+    %saveas(f,[pwd,sprintf('/Plots/ModeShape=%.0d.png',i)]);
+    %close(f);
+    fprintf('Progress: %.2f\n',i/size(Phi,2)*100); 
+    waitbar(i/size(Phi,2), wbar);
+    set(gca,'fontsize',22)
         
 end
+sgtitle('\textbf{6 first mode shapes}','fontsize',28,'interpreter','latex')
+saveas(gca,[pwd,'/Plots/ModeShapes.png']);
+saveas(gca,[pwd,'/Plots/ModeShapes.fig']);
 close(wbar);
