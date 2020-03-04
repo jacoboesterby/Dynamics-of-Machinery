@@ -41,11 +41,12 @@ As(5:6,:) = As(5:6,:).*double(Phi_blade(L,L));
 
 g = 9.81;
 %%Plotting stuff 
-fps = 60;
+fps = 50;
 time = linspace(0,t_int(end),t_int(end)*fps);
 %Create .avi file
 f = figure('visible','off');
-v = VideoWriter('Test2.avi');
+v = VideoWriter('Test6.avi');
+v.FrameRate = 50;
 open(v);
 hold on
 Beam = @(L) linspace(0,L,20);
@@ -113,7 +114,7 @@ for i=time
     filledCircle([x4(end),y4(end)+h],rhub,100,'k');
     
     xlim([-w*3,w*3]);
-    ylim([0,L1+L2+L3+L4+L6].*1.1)
+    ylim([0,L1+L2+L3+L4+L6+rhub].*1.1)
     frame = getframe(gcf);
     writeVideo(v,frame)
     fprintf('Progress: %.2f\n',i/time(end)*100);
@@ -121,3 +122,4 @@ for i=time
     waitbar(i/time(end), wbar);
 end
 close(v);
+close(wbar)
