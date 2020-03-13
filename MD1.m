@@ -120,7 +120,7 @@ m2 = 1.941;
 m3 = 1.943;
 m4 = 2.732;
 m5 = 0.774;
-m6 = 0.774;
+m6 = 0.774+0.02;
 mbeam = 0.3;
 rho1 = 0.278;
 mbeam2 = 0.421;
@@ -210,8 +210,12 @@ Phi = u(1:6,1:2:end);
 
 %% Damping
 xi =[0.0009,0.0007,0.0009,0.0013,0.001,0.0013].';
-xi = zeros(6,1);
+xi = [0.0024,0.0018,0.0020,0.0031,0.0028,0.0040].';
 
+
+
+
+%Solve for all damping ratios: 
 
 for i=1:6
     temp1(i) = 1/(2*omega0(i*2-1));
@@ -233,9 +237,9 @@ D1 = alpha.*M;
 D2 = beta.'*K;
 D3 = alpha.*M+beta.*K;
 
-A = [M,nulmat;
+A = [M,D3;
      nulmat,M];
-B = [D3,K;
+B = [nulmat,K;
      -M,nulmat]; 
  
 z = sym(zeros(12,1));
@@ -259,7 +263,7 @@ end
 
 %PlotModeShapes(Phi,fd(2:2:end));
 
-Sys = inv(A)*(B);
+Sys = inv(A)*(-B);
 
 U = [zeros(6,1);ones(1,1);zeros(5,1)];
 
@@ -278,17 +282,60 @@ figure
 hold on
 subplot(2,1,1)
 grid on
-semilogy(fr/(2*pi),amp.*3)
+semilogy(fr/(2*pi),amp)
 %subplot(2,1,2)
 %plot(fr/(2*pi),ph+90);
 
-sol = sim('SimulinkModel',10);
-plot(sol.tout,sol.x1sim,'linewidth',3)
-[sol1,time] = step(sys,10);
+srate = 50;
+sf = 1/srate;
+
+f1 = struct;
+load('force1.txt');
+f1.signals.values = force1;
+f1.time = linspace(sf,length(force1)*sf,length(force1));
+
+f2 = struct;
+load('force2.txt');
+f2.signals.values = force2;
+f2.time = linspace(sf,length(force2)*sf,length(force2));
+
+f3 = struct;
+load('force3.txt');
+f3.signals.values = force3;
+f3.time = linspace(sf,length(force3)*sf,length(force3));
+
+f4 = struct;
+load('force4.txt');
+f4.signals.values = force4;
+f4.time = linspace(sf,length(force4)*sf,length(force4));
+
+f5 = struct;
+load('force5.txt');
+f5.signals.values = force5;
+f5.time = linspace(sf,length(force5)*sf,length(force5));
+
+f6 = struct;
+load('force6.txt');
+f6.signals.values = force6;
+f6.time = linspace(sf,length(force6)*sf,length(force6));
+
+
+sol = sim('SimulinkModelDamped',length(force1)*sf);
+plot(sol.tout,sol.x2sim,'linewidth',3)
+[sol1,time] = step(sys,160);
 hold on
-plot(time,sol1(:,1),'linestyle','--','linewidth',3)
+plot(time,sol1(:,2),'linestyle','--','linewidth',3)
 
+% [Pxx,F,Pxxc] = pwelch(sol1(:,2),[],[],[],8*2*pi,'twosided')
+% figure
+% plot(F,Pxx)
+% 
+% pwelch(sol1(:,2))
 
+load('acceleration1.txt');
+load('force1.txt')
+GenerateFRF(acceleration1,force1);
+GenerateFRF(sol.xdd1sim(1:length(force1)),force1);
 %pwelch, cpsd
 
 %%%%%%%%%%%
