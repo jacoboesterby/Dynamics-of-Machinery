@@ -163,33 +163,140 @@ k1 = BeamStiff_beam(L1,I1);
 k2 = BeamStiff_beam(L2,I1);
 k3 = BeamStiff_beam(L3,I1);
 k4 = BeamStiff_beam(L4,I1);
-kb = BeamStiff_blade(L5,I2);
+k5 = BeamStiff_blade(L5,I2);
+k6 = BeamStiff_blade(L6,I2);
 
 
 K = [2*k1+2*k2  -2*k2      0         0         0   0;
      -2*k2 2*k2+2*k3  -2*k3     0         0   0;
      0     -2*k3      2*k3+2*k4 -2*k4     0   0;
-     0     0          -2*k4     2*k4+2*kb -kb -kb;
-     0     0          0         -kb       kb  0;
-     0     0          0         -kb       0   kb];
+     0     0          -2*k4     2*k4+k5+k6 -k5 -k6;
+     0     0          0         -k5       k5  0;
+     0     0          0         -k6       0   k6];
 nulmat = zeros(size(M));
+
 
 A = [M,nulmat;
      nulmat,M];
 B = [nulmat,K;
      -M,nulmat]; 
  
+ 
+ %%% Bode plot
+% 
+% Sys = linsolve(-B,A);
+% U = [ones(6,1);zeros(6,1)]
+% C  = diag(ones(1,12));
+% C(7:end,:) = 0;
+% D  = zeros(12,1);
+% Sys = ss(Sys,U,C,D)
+% 
+% bode(Sys)
+
+ 
+ %%%
+ 
+ 
 [u,lambda] = eig(-B,A);
 
 lambda = diag(lambda);
 
 [lambda,ind] = sort(lambda);
-omega0 = lambda./(2*pi);
+omega0 = lambda
+f0 = lambda./(2*pi);
 u = u(:,ind);
 Phi = u(1:6,1:2:end);
-PlotModeShapes(Phi,omega0(2:2:end));
+%PlotModeShapes(Phi,f0(2:2:end));
+
+%% Damping
+xi =[0.0009,0.0007,0.0009,0.0013,0.001,0.0013].';
+xi = zeros(6,1);
 
 
+for i=1:6
+    temp1(i) = 1/(2*omega0(i*2-1));
+    temp2(i) = omega0(i*2-1)/2;
+end
+C = [temp1.',temp2.'];
+res = linsolve(C,xi);
+res = (C.'*C)^(-1)*C.'*xi;
+alpha = abs(res(1));
+beta = abs(res(2));
+
+
+syms ddx ddx1 ddx2 ddx3 ddx4 ddx5 ddx6 dx x dx1 dx2 dx3 dx4 dx5 dx6 xx1 xx2 xx3 xx4 xx5 xx6
+x_ddot = [ddx1,ddx2,ddx3,ddx4,ddx5,ddx6].';
+x_dot = [dx1,dx2,dx3,dx4,dx5,dx6].';
+x = [xx1,xx2,xx3,xx4,xx5,xx6].';
+
+D1 = alpha.*M;
+D2 = beta.'*K;
+D3 = alpha.*M+beta.*K;
+
+A = [M,nulmat;
+     nulmat,M];
+B = [D3,K;
+     -M,nulmat]; 
+ 
+z = sym(zeros(12,1));
+z_dot = sym(zeros(12,1));
+z(:) = [x_dot;x];
+z_dot(:) = [x_ddot;x_dot];
+
+[u,lambda] = eig(-B,A);
+
+lambda = diag(lambda);
+
+[lambda,ind] = sort(lambda);
+omegad = lambda;
+fd = omegad./(2*pi);
+u = u(:,ind);
+Phi = u(1:6,1:2:end);
+
+for i =1:12
+    xi(i) = -real(omegad(i))/sqrt((real(omegad(i)))^2+(imag(omegad(i)))^2);
+end
+
+%PlotModeShapes(Phi,fd(2:2:end));
+
+Sys = inv(A)*(B);
+
+U = [zeros(6,1);ones(1,1);zeros(5,1)];
+
+C =  zeros(12,12);
+for i=1:12
+    C(i,i) = 1;
+end
+D = zeros(12,1);
+
+sys = ss(Sys,U,C,D);
+w = linspace(0,8*2*pi,1000);
+[mag,phase,fr] = bode(sys,w);
+amp = squeeze(mag(7,1,:));
+ph = squeeze(phase(7,1,:));
+figure
+hold on
+subplot(2,1,1)
+grid on
+semilogy(fr/(2*pi),amp.*3)
+%subplot(2,1,2)
+%plot(fr/(2*pi),ph+90);
+
+sol = sim('SimulinkModel',10);
+plot(sol.tout,sol.x1sim,'linewidth',3)
+[sol1,time] = step(sys,10);
+hold on
+plot(time,sol1(:,1),'linestyle','--','linewidth',3)
+
+
+%pwelch, cpsd
+
+%%%%%%%%%%%
+
+
+
+
+%%
 
 eq1 = subs(eq1);
 eq2 = subs(eq2);
@@ -216,6 +323,10 @@ for i=1:size(eqsys,1)
         index(end+1) = i;
     end
 end
+
+keyboard
+
+
 
 [A,b] = equationsToMatrix(eqsys(index),dx.');
 syms ddphi
