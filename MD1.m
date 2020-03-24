@@ -1,12 +1,21 @@
 clear all
+%Define symbolic variables
 syms k1 k2 k3 k4 k5 k6 alpha beta E I1 I2 L L1 L2 L3 L4 L5 L6 m1 m2 m3 m4 m5 m6 x1(t) x2(t) x3(t) x4(t) x5(t) x6(t) t g theta(t) R1(t) R2(t) R3(t) R4(t) R5(t) R6(t) u1 u2 u3 u4 u5 u6 phi du1 du2 du3 du4 du5 du6
 
+%Define symbolic arrays
 eq1 = sym(zeros(3,1));
 eq2 = sym(zeros(3,1));
 eq3 = sym(zeros(3,1));
 eq4 = sym(zeros(3,1));
 eq5 = sym(zeros(3,1));
 eq6 = sym(zeros(3,1));
+
+m = sym(zeros(6,1));
+m = [m1;m2;m3;m4;m5;m6];
+
+%Define beam stiffnesses
+BeamStiff_blade = @(L,I) 3*E*I/(L^3);
+BeamStiff_beam = @(L,I) 12*E*I/(L^3);
 
 %Position vectors
 iroa = [x1(t),L1,0].';
@@ -17,16 +26,44 @@ b5rde = [x5(t),L5,0].';
 b5rdf = [x6(t),-L6,0].';
 
 %Transformation matrices:
+%Rotation matrix
 T_theta = [cos(theta), sin(theta), 0;
-    -sin(theta), cos(theta),0;
-    0,           0,         1];
-T = [1,0,0;
-    0,1,0;
-    0,0,1];
+           -sin(theta), cos(theta),0;
+           0,           0,         1];
 
+%Translation matrix
+T = [1,0,0;
+     0,1,0;
+     0,0,1];
+
+%Angular velocity of blades
 omega = [0,0,diff(theta,t)].';
 
-%Velocity vectors:
+%Body forces
+IPA = [0, -m1*g, 0].';
+IPB = [0, -m2*g, 0].';
+IPC = [0,-m3*g,0].';
+IPD = [0,-m4*g,0].';
+IPE = T_theta*[0,-m5*g,0].';
+IPF = T_theta*[0,-m6*g,0].';
+
+%Reaction forces
+IRA1 = [0,R1,0].';
+IRA2 = [0,-R2,0].';
+IRB1 = -IRA2;
+IRB2 = [0,-R3,0].';
+IRC1 = -IRB2;
+IRC2 = [0,-R4,0].';
+IRD1 = -IRC2;
+IRE = [0,-R5,0].';
+IRF = [0,R6,0].';
+IRD2 = T_theta.'*(-(IRE+IRF));
+
+disp('Choose coordinates: ');
+cordChoice  = displayMenu({'Local Coordinates','Global Coordinates'});
+
+if cordChoice == 1
+%Velocity vectors (Local coordinates)
 b1va = diff(iroa,t);
 b2vb = b1va + diff(b1rab,t);
 b3vc = b2vb + diff(b2rbc,t);
@@ -38,7 +75,7 @@ b5vf = T_theta*b4vd + cross(omega,b5rdf) + diff(b5rdf,t);
 
 
 
-%Acceleration vectors:
+%Acceleration vectors (Local coordinates):
 %Note that omega = [0,0,0] for all masses m1 m2 m3 m4, such that all cross
 %products including omega can be neglected
 b1Aa = diff(iroa,t,t);
@@ -46,94 +83,82 @@ b2Ab = b1Aa + diff(b1rab,t,t);
 b3Ac = b2Ab + diff(b2rbc,t,t);
 b4Ad = b3Ac + diff(b3rcd,t,t);
 
-%Accelerations for blade tips:
+%Accelerations for blade tips (Local coordinates):
 b5Ae = T_theta*b4Ad + cross(diff(omega,t),b5rde) + cross(omega,cross(omega,b5rde)) + 2 * cross(omega,diff(b5rde,t)) + diff(b5rde,t,t);
 b5Af = T_theta*b4Ad + cross(diff(omega,t),b5rdf) + cross(omega,cross(omega,b5rdf)) + 2 * cross(omega,diff(b5rdf,t)) + diff(b5rdf,t,t);
 
+%Beam bending forces acting on:
+
+%Mass 1
+ITA1 = -2*k1.*[1;0;0].*iroa; 
+ITA2 = 2*k2.*[1;0;0].*b1rab;
+
+%Mass 2
+ITB1 = -ITA2; 
+ITB2 = 2*k3.*[1;0;0].*b2rbc;
+
+%Mass 3
+ITC1 = -ITB2; 
+ITC2 = 2*k4.*[1;0;0].*b3rcd;
+
+%Mass 4
+ITD1 = -ITC2; 
+ITD2 = k5.*(T_theta.'*([1;0;0].*b5rde))+k6.*(T_theta.'*([1;0;0].*b5rdf));
+
+%Mass 5
+ITE = T_theta*([1;0;0].*b3rcd.*k4) - k5.*[1;0;0].*b5rde;
+
+%Mass 6
+ITF = T_theta*([1;0;0].*b3rcd.*k4) - k6.*[1;0;0].*b5rdf;
 
 
-BeamStiff_blade = @(L,I) 3*E*I/(L^3);
-BeamStiff_beam = @(L,I) 12*E*I/(L^3);
+elseif cordChoice == 2
 
-IPA = [0, -m1*g, 0].';
+
 ITA1 = [-2*k1*x1(t), 0, 0].';
-IRA1 = [0,R1,0].';
-
-ITA1 = [-2*k1*x1(t),0,0].';
-
 ITA2 = [2*k2*(x2(t)-x1(t)),0,0].';
-ITA2 = [2*k2*x2(t),0,0].';
-IRA2 = [0,-R2,0].';
 
-IPB = [0, -m2*g, 0].';
+
 ITB1 = -ITA2;
-IRB1 = -IRA2;
-
 ITB2 = [2*k3*(x3(t)-x2(t)),0,0].';
 
-ITB2 = [2*k3*x3(t),0,0].';
 
-IRB2 = [0,-R3,0].';
-
-IPC = [0,-m3*g,0].';
 ITC1 = -ITB2;
-IRC1 = -IRB2;
 ITC2 = [2*k4*(x4(t)-x3(t)),0,0].';
 
-ITC2 =  [2*k4*x4(t),0,0].';
 
-IRC2 = [0,-R4,0].';
-
-IPD = [0,-m4*g,0].';
 ITD1 = -ITC2;
-IRD1 = -IRC2;
-
-
-%ITD2 = [k5*(x5(t)-x4(t))+k6*(x6(t)-x4(t)),0,0].';
-%IRD2 = [0,-(R5+R6),0].';
-%
-
-
-IPE = T_theta*[0,-m5*g,0].';
 
 ITE = -k5*[x5(t),0,0].'+T_theta*k5*[x4(t),0,0].';
-IRE = [0,-R5,0].';
-
-
-
-IPF = T_theta*[0,-m6*g,0].';
 
 ITF = -k6*[x6(t),0,0].'+T_theta*k6*[x4(t),0,0].';
-IRF = [0,R6,0].';
 
+ITD2 = T_theta.'*(-(ITE+ITF));
 
-% IRD2 = T_theta.'*(-(IRE+IRF));
-% ITD2 = T_theta.'*(-(ITE+ITF)) - (k5+k6)*[x4(t),0,0].';
-
-IRD2 = T_theta.'*(-(IRE+IRF));
-ITD2 = T_theta.'*(-(ITE+ITF));% - (k5+k6)*[x4(t),0,0].';
-
-
+end
 
 %Damping Forces
-IDa = - beta*(2*k2)*[1;0;0].*b2vb + (alpha*m1+beta*(2*k1+2*k2))*([1;0;0].*b1va) ;
-IDb = - beta*(2*k2)*[1;0;0].*b1va + (alpha*m2+beta*(2*k2+2*k3))*[1;0;0].*b2vb - beta*(2*k3)*[1;0;0].*b3vc;
-IDc = - beta*(2*k3)*[1;0;0].*b2vb + (alpha*m3+beta*(2*k3+2*k4))*[1;0;0].*b3vc - beta*(2*k4)*[1;0;0].*b4vd;
-IDd = - beta*(2*k4)*[1;0;0].*b3vc+(alpha*m4+beta*(2*k4+k5+k6))*[1;0;0].*b4vd-beta*k5*[1;0;0].*T_theta.'*b5ve-beta*k6*[1;0;0].*T_theta.'*b5vf;
-IDe = - beta*k5*[1;0;0].*T_theta*b4vd+(alpha*m5+beta*k5)*[1;0;0].*b5ve;
-IDf = - beta*k6*[1;0;0].*T_theta*b4vd+(alpha*m6+beta*k6)*[1;0;0].*b5vf;
+%Global coordinates
+IDa = - beta*(2*k2)*[1;0;0].*diff(x2(t),t) + (alpha*m1+beta*(2*k1+2*k2))*([1;0;0].*diff(x1(t),t)) ;
+IDb = - beta*(2*k2)*[1;0;0].*diff(x1(t),t) + (alpha*m2+beta*(2*k2+2*k3))*[1;0;0].*diff(x2(t),t) - beta*(2*k3)*[1;0;0].*diff(x3(t),t);
+IDc = - beta*(2*k3)*[1;0;0].*diff(x2(t),t) + (alpha*m3+beta*(2*k3+2*k4))*[1;0;0].*diff(x3(t),t) - beta*(2*k4)*[1;0;0].*diff(x4(t),t);
+IDd = - beta*(2*k4)*[1;0;0].*diff(x3(t),t)+(alpha*m4+beta*(2*k4+k5+k6))*[1;0;0].*diff(x4(t),t)-beta*k5*T_theta.'*[1;0;0].*diff(x5(t),t)-beta*k6*T_theta.'*[1;0;0].*diff(x6(t),t);
+IDe = - beta*k5*T_theta*[1;0;0].*diff(x4(t),t)+(alpha*m5+beta*k5)*[1;0;0].*diff(x5(t),t);
+IDf = - beta*k6*T_theta*[1;0;0].*diff(x4(t),t)+(alpha*m6+beta*k6)*[1;0;0].*diff(x6(t),t);
 
 
 
 
+%In local coordinates
+% eq1(:) = sum(m(1:1)).*(b1Aa) - ( IPA + IRA1 + IRA2 + ITA1 + ITA2) + IDa;
+% eq2(:) = sum(m(1:2)).*(b2Ab) - ( IPB + IRB1 + IRB2 + ITB1 + ITB2) + IDb;
+% eq3(:) = sum(m(1:3)).*(b3Ac) - ( IPC + IRC1 + IRC2 + ITC1 + ITC2) + IDc;
+% eq4(:) = sum(m(1:4)).*(b4Ad) - ( IPD + IRD1 + IRD2 + ITD1 + ITD2) + IDd;
+% eq5(:) = sum(m(1:5)).*(b5Ae) - ( IPE + IRE + ITE) + IDe;
+% eq6(:) = sum(m([1,2,3,4,6])).*(b5Af) - ( IPF + IRF + ITF) + IDf;
 
-% eq1(:) = m1.*(b1Aa) - ( IPA + IRA1 + IRA2 + ITA1 + ITA2) + IDa;
-% eq2(:) = m2.*(b2Ab) - ( IPB + IRB1 + IRB2 + ITB1 + ITB2) + IDb;
-% eq3(:) = m3.*(b3Ac) - ( IPC + IRC1 + IRC2 + ITC1 + ITC2) + IDc;
-% eq4(:) = m4.*(b4Ad) - ( IPD + IRD1 + IRD2 + ITD1 + ITD2) + IDd;
-% eq5(:) = m5.*(b5Ae) - ( IPE + IRE + ITE) + IDe;
-% eq6(:) = m6.*(b5Af) - ( IPF + IRF + ITF) + IDf;
 
+%In global coordinates
 eq1(:) = m1.*[diff(x1(t),t,t),0,0].' - ( IPA + IRA1 + IRA2 + ITA1 + ITA2) + IDa;
 eq2(:) = m2.*[diff(x2(t),t,t),0,0].' - ( IPB + IRB1 + IRB2 + ITB1 + ITB2) + IDb;
 eq3(:) = m3.*[diff(x3(t),t,t),0,0].' - ( IPC + IRC1 + IRC2 + ITC1 + ITC2) + IDc;
@@ -180,6 +205,7 @@ b2 = 0.0350;
 h2 = 0.0015;
 I2 = b2*h2^3/12;
 
+
 %theta = pi/4;
 
 g = 9.81;
@@ -216,6 +242,7 @@ B = [nulmat,K;
     -M,nulmat];
 
 
+
 %%% Bode plot
 %
 % Sys = linsolve(-B,A);
@@ -248,6 +275,35 @@ xi =[0.0009,0.0007,0.0009,0.0013,0.001,0.0013].';
 xi = [0.0024,0.0018,0.0020,0.0031,0.0028,0.0040].';
 %xi = ones(6,1).*0;
 
+x0 = [2.294,1.941,1.943,2.732,0.774,0.774,BeamStiff_beam(L1,I1),BeamStiff_beam(L2,I1),BeamStiff_beam(L3,I1),BeamStiff_beam(L4,I1),BeamStiff_blade(L5,I2),BeamStiff_blade(L6,I2)];
+
+display('Optimize Parameters? ')
+OptChoice = displayMenu({'Yes','No'});
+if OptChoice == 1
+    options = optimoptions('fmincon','Display','iter','Algorithm','interior-point');
+    %x0 = [m1,m2,m3,m4,m5,m6,k1,k2,k3,k4,k5,k6];
+    [x,fval] = fmincon(@objective,x0,[],[],[],[],0.9.*x0,1.1.*x0,[],options);
+    disp('Old values: ')
+    x0.'
+    disp('New values: ')
+    x.'
+    
+    disp('Relative change: ')
+    (x./x0).'
+    m1 = x(1);
+    m2 = x(2);
+    m3 = x(3);
+    m4 = x(4);
+    m5 = x(5);
+    m6 = x(6);
+    k1 = x(7);
+    k2 = x(8);
+    k3 = x(9);
+    k4 = x(10);
+    k5 = x(11);
+    k6 = x(12);
+end
+
 
 
 
@@ -273,9 +329,9 @@ D1 = alpha.*M;
 D2 = beta.'*K;
 D3 = alpha.*M+beta.*K;
 
-A = [M,D3;
+A = [M,nulmat;
     nulmat,M];
-B = [nulmat,K;
+B = [D3,K;
     -M,nulmat];
 
 z = sym(zeros(12,1));
@@ -291,13 +347,21 @@ lambda = diag(lambda);
 omegad = lambda;
 fd = omegad./(2*pi);
 u = u(:,ind);
-Phi = u(1:6,1:2:end);
+Phi = u(7:end,1:2:end);
+
+
+
+for k=1:6
+    Phi(:,k) = Phi(:,k)./max(abs(real(Phi(:,k))));
+end
+
 
 for i =1:12
     xi(i) = -real(omegad(i))/sqrt((real(omegad(i)))^2+(imag(omegad(i)))^2);
 end
 
 %PlotModeShapes(Phi,fd(2:2:end));
+
 
 Sys = inv(A)*(-B);
 
@@ -323,7 +387,7 @@ ph = squeeze(phase(7,1,:));
 %plot(fr/(2*pi),ph+90);
 
 
-choice = displayMenu({'Frequency response','Transient response','No simulation'})
+choice = displayMenu({'Frequency response','Transient response','No simulation'});
 
 f1 = struct;
 f2 = struct;
@@ -334,9 +398,9 @@ f6 = struct;
 srate = 50;
 sf = 1/srate;
 
-%Frequency response
+%%% ===============Frequency response =========================%
 disp('Choose dataset: ')
-data = displayMenu({'1','2','3','4','5','6'});;
+data = displayMenu({'1','2','3','4','5','6'});
 
 if choice == 1
 
@@ -354,64 +418,52 @@ load('acceleration3.txt');
 load('acceleration4.txt');
 load('acceleration5.txt');
 load('acceleration6.txt');
-f1.time = linspace(0,length(force1)*sf,length(force1));
-f2.time = linspace(0,length(force2)*sf,length(force2));
-f3.time = linspace(0,length(force3)*sf,length(force3));
-f4.time = linspace(0,length(force4)*sf,length(force4));
-f5.time = linspace(0,length(force5)*sf,length(force5));
-f6.time = linspace(0,length(force6)*sf,length(force6));
-
 
 
 
 forces = {force1,force2,force3,force4,force5,force6};
 accelerations = {acceleration1,acceleration2,acceleration3,acceleration4,acceleration5,acceleration6};
 
-
+f1.signals.values = zeros(length(force1),1);
 if data == 1
     f1.signals.values = force1;
-else
-    f1.signals.values = zeros(length(force1),1);
+    f1.time = linspace(0,length(force1)*sf,length(force1));
 end
 if data == 2
-    f2.signals.values = force2;
-else
-    f2.signals.values = zeros(length(force2),1);
+    f1.signals.values = force2;
+    f1.time = linspace(0,length(force2)*sf,length(force2));
 end
 if data == 3
-    f3.signals.values = force3;    
-else
-    f3.signals.values = zeros(length(force3),1);
+    f1.signals.values = force3;
+    f1.time = linspace(0,length(force3)*sf,length(force3));
 end
 if data == 4
-    f4.signals.values = force4;    
-else
-    f4.signals.values = zeros(length(force4),1);
+    f1.signals.values = force4;
+    f1.time = linspace(0,length(force4)*sf,length(force4));
 end
 if data == 5
-    f5.signals.values = force5;    
-else
-    f5.signals.values = zeros(length(force5),1);
+    f1.signals.values = force5;
+    f1.time = linspace(0,length(force5)*sf,length(force5));
 end
 if data == 6
-    f6.signals.values = force6;
-else
-    f6.signals.values = zeros(length(force6),1);
+    f1.signals.values = force6;
+    f1.time = linspace(0,length(force6)*sf,length(force6));
 end
 
 
 
-%%% ===============Frequency response =========================%
+
 
 sol = sim('SimulinkModelDamped',length(forces{data})*sf);
 
 simacc = {sol.xdd1sim,sol.xdd2sim,sol.xdd3sim,sol.xdd4sim,sol.xdd5sim,sol.xdd6sim};
-simforce = {sol.SimForce1,sol.SimForce2,sol.SimForce3,sol.SimForce4,sol.SimForce5,sol.SimForce6};
 
 GenerateFRF(accelerations{data},forces{data},'Experiments');
-GenerateFRF(simacc{data},simforce{data},'Simulation');
+GenerateFRF(simacc{data},sol.SimForce1,'Simulation');
 
 elseif choice == 2
+    
+    %=========== Transient Response ================%
     
     load('force_transient_mode1.txt');
     load('force_transient_mode2.txt');
@@ -426,56 +478,49 @@ elseif choice == 2
     load('acceleration_transient_mode5.txt');
     load('acceleration_transient_mode6.txt');
     
-    f1.time = linspace(0,length(force_transient_mode1)*sf,length(force_transient_mode1));
-    f2.time = linspace(0,length(force_transient_mode2)*sf,length(force_transient_mode2));
-    f3.time = linspace(0,length(force_transient_mode3)*sf,length(force_transient_mode3));
-    f4.time = linspace(0,length(force_transient_mode4)*sf,length(force_transient_mode4));
-    f5.time = linspace(0,length(force_transient_mode5)*sf,length(force_transient_mode5));
-    f6.time = linspace(0,length(force_transient_mode6)*sf,length(force_transient_mode6));
+    
+    
+    
+    
+    
+    
     
     forces = {force_transient_mode1,force_transient_mode2,force_transient_mode3,force_transient_mode4,force_transient_mode5,force_transient_mode6};
     accelerations = {acceleration_transient_mode1,acceleration_transient_mode2,acceleration_transient_mode3,acceleration_transient_mode4,acceleration_transient_mode5,acceleration_transient_mode6};
 
-    
+    f1.signals.values = zeros(length(force_transient_mode1),1);
     if data == 1
         f1.signals.values = force_transient_mode1;
-    else
-        f1.signals.values = zeros(length(force_transient_mode1),1);
+        f1.time = linspace(0,length(force_transient_mode1)*sf,length(force_transient_mode1));
     end
     if data == 2
-        f2.signals.values = force_transient_mode2;
-    else
-        f2.signals.values = zeros(length(force_transient_mode2),1);
+        f1.signals.values = force_transient_mode2;
+        f1.time = linspace(0,length(force_transient_mode2)*sf,length(force_transient_mode2));
     end
     if data == 3
-        f3.signals.values = force_transient_mode3;
-    else
-        f3.signals.values = zeros(length(force_transient_mode3),1);
+        f1.signals.values = force_transient_mode3;
+        f1.time = linspace(0,length(force_transient_mode3)*sf,length(force_transient_mode3));
     end
     if data == 4
-        f4.signals.values = force_transient_mode4;
-    else
-        f4.signals.values = zeros(length(force_transient_mode4),1);
+        f1.signals.values = force_transient_mode4;
+        f1.time = linspace(0,length(force_transient_mode4)*sf,length(force_transient_mode4));
     end
     if data == 5
-        f5.signals.values = force_transient_mode5;
-    else
-        f5.signals.values = zeros(length(force_transient_mode5),1);
+        f1.signals.values = force_transient_mode5;
+        f1.time = linspace(0,length(force_transient_mode5)*sf,length(force_transient_mode5));
     end
     if data == 6
-        f6.signals.values = force_transient_mode6;
-    else
-        f6.signals.values = zeros(length(force_transient_mode6),1);
+        f1.signals.values = force_transient_mode6;
+        f1.time = linspace(0,length(force_transient_mode6)*sf,length(force_transient_mode6));
     end
     
     sol = sim('SimulinkModelDampedTransient',length(forces{data})*sf);
     
     simacc = {sol.xdd1sim,sol.xdd2sim,sol.xdd3sim,sol.xdd4sim,sol.xdd5sim,sol.xdd6sim};
-    simforce = {sol.SimForce1,sol.SimForce2,sol.SimForce3,sol.SimForce4,sol.SimForce5,sol.SimForce6};
     close all
     
     AccTimeDomain(accelerations{data},forces{data},'Experiments');
-    AccTimeDomain(simacc{data},simforce{data},'Simulation');
+    AccTimeDomain(simacc{data},sol.SimForce1,'Simulation');
     
 end
 
@@ -516,12 +561,12 @@ end
 %%%%
 
 
-% transSol = sim('SimulinkModelDamped',10)
-% figure(10)
-% plot(transSol.time,transSol.x1sim,'linewidth',3)
-% xlabel('Time [s]','interpreter','latex')
-% ylabel('Displacement [m]','interpreter','latex')
-% set(gca,'fontsize',28)
+transSol = sim('SimulinkModelDamped',10)
+figure(10)
+plot(transSol.time,transSol.x1sim,'linewidth',3)
+xlabel('Time [s]','interpreter','latex')
+ylabel('Displacement [m]','interpreter','latex')
+set(gca,'fontsize',28)
 
 
 %%
@@ -582,9 +627,9 @@ n_int = 1000000;
 
 %Initial conditions on form Ini = [x10,dx10dt x20 dx20dt x30 dx30dt x40 dx40dt x50 dx50dt x60 dx60dt]
 
-Ini = [0,0,0,0,0,0,0,0,0,0,0,0];
+Ini = [0.1,0,0,0,0,0,0,0,0,0,0,0];
 
-theta0 = pi/2;
+theta0 = 0;
 dtheta0 = 0;
 ddtheta0 = 0;
 
