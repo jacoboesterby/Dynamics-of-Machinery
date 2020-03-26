@@ -131,7 +131,7 @@ for i=1:size(Phi,2)
     end
     %plot(nan,nan)
     dummyh = line(nan, nan, 'Linestyle', 'none', 'Marker', 'none', 'Color', 'none');
-    legend(dummyh, strcat('$\omega0 = $',sprintf('%.2f Hz',imag(omega0(i)))),'interpreter','latex')
+    legend(dummyh, sprintf('$\\omega_%d = %.2f \\textrm{Hz}$',i,imag(omega0(i))),'interpreter','latex')
     legend boxoff
     
     %legend(strcat('$\omega0 = $',sprintf('%.2f Hz',imag(omega0(i)))),'interpreter','latex');
